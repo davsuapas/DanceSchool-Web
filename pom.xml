@@ -25,9 +25,37 @@
 		<spring-cloud.version>Finchley.RC2</spring-cloud.version>
         <thymeleaf-layout-dialect.version>2.3.0</thymeleaf-layout-dialect.version>
         <thymeleaf.version>3.0.9.RELEASE</thymeleaf.version>
+		<!-- PIPELINE -->
+		<distribution.management.release.id>artifactory-local</distribution.management.release.id>
+		<distribution.management.snapshot.url>http://localhost:8081/artifactory/libs-snapshot-local</distribution.management.snapshot.url>
+		<distribution.management.release.url>http://localhost:8081/artifactory/libs-release-local</distribution.management.release.url>
+		<repo.with.binaries>http://localhost:8081/artifactory/libs-release-local</repo.with.binaries>
+		<!-- KUBERNETES -->
+		<DOCKER_REGISTRY_ORGANIZATION>danceschool</DOCKER_REGISTRY_ORGANIZATION>
+		<DOCKER_SERVER_ID>docker-repo</DOCKER_SERVER_ID>
+		<DOCKER_REGISTRY_URL>https://index.docker.io/v1/</DOCKER_REGISTRY_URL>
 	</properties>
 
+	<!-- PIPELINE -->
+	<distributionManagement>
+		<repository>
+			<id>${distribution.management.release.id}</id>
+			<name>Spring Milestone Repository</name>
+			<url>${distribution.management.release.url}</url>
+		</repository>
+		<snapshotRepository>
+			<id>${distribution.management.release.id}</id>
+			<name>Spring Snapshot Repository</name>
+			<url>${distribution.management.snapshot.url}</url>
+		</snapshotRepository>
+	</distributionManagement>
+	<!-- PIPELINE -->
+
 	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>com.elipcero.schoolcore</groupId>
 			<artifactId>core-school</artifactId>
@@ -116,6 +144,14 @@
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.18.1</version>
+				<configuration>
+					<useSystemClassLoader>false</useSystemClassLoader>
+				</configuration>
+			</plugin>
+			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
@@ -131,7 +167,149 @@
 				<enabled>false</enabled>
 			</snapshots>
 		</repository>
+		<repository>
+			<id>danceschool-artifactory</id>
+			<name>${distribution.management.release.id}</name>
+			<url>${distribution.management.release.url}</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
 	</repositories>
 
-
+	<profiles>
+		<profile>
+			<id>default</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>2.18.1</version>
+						<configuration>
+							<useSystemClassLoader>false</useSystemClassLoader>
+							<includes>
+								<include>**/*Tests.java</include>
+								<include>**/*Test.java</include>
+							</includes>
+							<excludes>
+								<exclude>**/smoke/**</exclude>
+								<exclude>**/e2e/**</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.springframework.boot</groupId>
+						<artifactId>spring-boot-maven-plugin</artifactId>
+					</plugin>
+					<plugin>
+						<groupId>com.spotify</groupId>
+						<artifactId>docker-maven-plugin</artifactId>
+						<version>0.4.11</version>
+						<goals>
+							<goal>build</goal>
+							<goal>push</goal>
+						</goals>
+						<configuration>
+							<serverId>${DOCKER_SERVER_ID}</serverId>
+							<registryUrl>${DOCKER_REGISTRY_URL}</registryUrl>
+							<imageName>${DOCKER_REGISTRY_ORGANIZATION}/${project.artifactId}</imageName>
+							<baseImage>frolvlad/alpine-oraclejdk8:slim</baseImage>
+							<imageTags>
+								<imageTag>${project.version}</imageTag>
+								<imageTag>latest</imageTag>
+							</imageTags>
+							<env>
+								<SYSTEM_PROPS>-Dfoo=bar</SYSTEM_PROPS>
+							</env>
+							<entryPoint>["sh", "-c", "java $${SYSTEM_PROPS} -Djava.security.egd=file:/dev/./urandom -jar /${project.build.finalName}.jar"]</entryPoint>
+							<resources>
+								<resource>
+									<targetPath>/</targetPath>
+									<directory>${project.build.directory}</directory>
+									<include>${project.build.finalName}.jar</include>
+								</resource>
+							</resources>
+						</configuration>
+						<executions>
+							<execution>
+								<id>build-image</id>
+								<phase>package</phase>
+								<goals>
+									<goal>build</goal>
+								</goals>
+							</execution>
+							<execution>
+								<id>push-latest-image</id>
+								<phase>deploy</phase>
+								<goals>
+									<goal>push</goal>
+								</goals>
+								<configuration>
+									<imageName>${DOCKER_REGISTRY_ORGANIZATION}/${project.artifactId}:latest</imageName>
+								</configuration>
+							</execution>
+							<execution>
+								<id>push-versioned-image</id>
+								<phase>deploy</phase>
+								<goals>
+									<goal>push</goal>
+								</goals>
+								<configuration>
+									<imageName>${DOCKER_REGISTRY_ORGANIZATION}/${project.artifactId}:${project.version}</imageName>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<!-- [PIPELINE] -->
+		<profile>
+			<id>smoke</id>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>2.18.1</version>
+						<configuration>
+							<includes>
+								<include>smoke/**/*Tests.java</include>
+								<include>smoke/**/*Test.java</include>
+							</includes>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<!-- [PIPELINE] -->
+		<profile>
+			<id>e2e</id>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>2.18.1</version>
+						<configuration>
+							<includes>
+								<include>e2e/**/*Tests.java</include>
+								<include>e2e/**/*Test.java</include>
+							</includes>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

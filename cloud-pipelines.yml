@@ -1,0 +1,22 @@
+# This file describes which services are required by this application
+# in order for the smoke tests on the TEST environment and end to end tests
+
+# lowercase name of the environment
+test:
+  # list of required services
+  services:
+    - type: eureka
+      name: eureka-school
+      coordinates: danceschool/eureka-school:latest
+    - type: infrastructure
+      name: configuration-school
+      coordinates: danceschool/configuration-school:latest
+stage:
+  # list of required services
+  services:
+    - type: eureka
+      name: eureka-school
+      coordinates: danceschool/eureka-school:latest
+    - type: infrastructure
+      name: configuration-school
+      coordinates: danceschool/configuration-school:latest

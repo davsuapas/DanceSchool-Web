@@ -1,14 +1,13 @@
-package com.elipcero.schoolweb;
+package smoke;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
-public class ApplicationTests {
+public class SmokeTest {
 
-	@Test
-	public void contextLoads() {
-	}
-
+    @Test
+    public void checkonly_infrastructures() {
+    }
 }

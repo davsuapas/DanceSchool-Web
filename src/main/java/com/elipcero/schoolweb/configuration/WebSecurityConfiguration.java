@@ -20,7 +20,7 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
-                .antMatchers("/logout", "/oauth_login").permitAll()
+                .antMatchers("/logout", "/oauth_login", "/health").permitAll()
                 .anyRequest().authenticated()
                 .and()
                     .logout()

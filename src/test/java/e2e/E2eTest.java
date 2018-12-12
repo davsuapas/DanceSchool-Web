@@ -1,14 +1,13 @@
-package com.elipcero.schoolweb;
+package e2e;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
-public class ApplicationTests {
+public class E2eTest {
 
-	@Test
-	public void contextLoads() {
-	}
-
+    @Test
+    public void checkonly_infrastructures() {
+    }
 }
