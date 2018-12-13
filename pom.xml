@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.elipcero.webschool</groupId>
-	<artifactId>WebSchool-school</artifactId>
+	<artifactId>webschool-school</artifactId>
 	<version>1.0.0</version>
 	<packaging>jar</packaging>
 
